@@ -425,7 +425,7 @@ df, info = carregar_dados(ativo_input)
             st.subheader("Detalhamento Completo")
             col_c1, col_c2, col_c3, col_fund = st.columns(4)
 
-            with col_c1:
+            with col_c1:l:
                 st.markdown("**📐 Camada 1 — Setup HiLo**")
                 for ico, txt, pts in motivos_c1:
                     st.write(f"{ico} {txt} `{pts}`")
