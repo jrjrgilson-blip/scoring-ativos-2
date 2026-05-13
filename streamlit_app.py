@@ -82,12 +82,14 @@ def calcular_indicadores(df):
 def detectar_reversao(df_v, janela=60):
     if len(df_v) < 3:
         return None
-    df_scan = df_v.tail(janela + 2).reset_index()
+    df_scan = df_v.tail(janela + 2)
+    datas = df_scan.index.tolist()
+    valores = df_scan.reset_index(drop=True)
     ultimo_padrao = None
-    for i in range(1, len(df_scan) - 1):
-        c_ant  = df_scan.iloc[i - 1]
-        c_rom  = df_scan.iloc[i]
-        c_conf = df_scan.iloc[i + 1]
+    for i in range(1, len(valores) - 1):
+        c_ant  = valores.iloc[i - 1]
+        c_rom  = valores.iloc[i]
+        c_conf = valores.iloc[i + 1]
         close_rom  = safe_float(c_rom["Close"])
         open_rom   = safe_float(c_rom["Open"])
         close_conf = safe_float(c_conf["Close"])
@@ -96,7 +98,7 @@ def detectar_reversao(df_v, janela=60):
         hilo_ant   = safe_float(c_ant["HiLo"])
         if mm6_rom == 0 or hilo_ant == 0:
             continue
-        data_conf = c_conf["index"]
+        data_conf = datas[i + 1]
         if hasattr(data_conf, "date"):
             data_conf = data_conf.date()
         cruzou_cima = open_rom < mm6_rom and close_rom > mm6_rom
