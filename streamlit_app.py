@@ -540,7 +540,7 @@ with aba2:
                         "Sinal": sinal,
                         "Modo HiLo": "Compra" if res['modo_compra'] else "Venda",
                         "Reversao": (res["reversao"]["tipo"] + " " + str(res["reversao"]["data"])) if res["reversao"] else "--",
-                        "HiLo Dist%": f"{res['dist_hilo_pct']:.1f}%",
+                        "HiLo Dist%": round(res['dist_hilo_pct'], 1),
                         "Consolidacao": "Sim" if res['faixa5'] <= 0.05 else "Nao",
                     })
                 except Exception:
@@ -592,8 +592,9 @@ with aba2:
                     return ""
 
                 df_display = df_rank.copy()
-                df_display['Cotacao'] = df_display['Cotacao'].apply(lambda x: f"R$ {x:.2f}")
-                df_display['Var%']    = df_display['Var%'].apply(lambda x: f"{x:+.2f}%")
+                df_display['Cotacao']    = df_display['Cotacao'].apply(lambda x: f"R$ {x:.2f}")
+                df_display['Var%']       = df_display['Var%'].apply(lambda x: f"{x:+.2f}%")
+                df_display['HiLo Dist%'] = df_display['HiLo Dist%'].apply(lambda x: f"{x:.1f}%")
 
                 def colorir_score(val):
                     if val >= 75:
