@@ -79,27 +79,33 @@ def calcular_indicadores(df):
     df['Fech_Pos']  = np.where(df['Amplitude'] > 0, (df['Close'] - df['Low']) / df['Amplitude'], 0.5)
     return df
 
-def detectar_reversao(df_v):
+def detectar_reversao(df_v, janela=60):
     if len(df_v) < 3:
         return None
-    c_ant  = df_v.iloc[-3]
-    c_rom  = df_v.iloc[-2]
-    c_conf = df_v.iloc[-1]
-    close_rom  = safe_float(c_rom['Close'])
-    open_rom   = safe_float(c_rom['Open'])
-    close_conf = safe_float(c_conf['Close'])
-    mm6_rom    = safe_float(c_rom['MM6'])
-    mm6_conf   = safe_float(c_conf['MM6'])
-    hilo_ant   = safe_float(c_ant['HiLo'])
-    if mm6_rom == 0 or hilo_ant == 0:
-        return None
-    cruzou_cima = open_rom < mm6_rom and close_rom > mm6_rom
-    if cruzou_cima and close_rom > hilo_ant and close_conf > mm6_conf:
-        return "COMPRA"
-    cruzou_baixo = open_rom > mm6_rom and close_rom < mm6_rom
-    if cruzou_baixo and close_rom < hilo_ant and close_conf < mm6_conf:
-        return "VENDA"
-    return None
+    df_scan = df_v.tail(janela + 2).reset_index()
+    ultimo_padrao = None
+    for i in range(1, len(df_scan) - 1):
+        c_ant  = df_scan.iloc[i - 1]
+        c_rom  = df_scan.iloc[i]
+        c_conf = df_scan.iloc[i + 1]
+        close_rom  = safe_float(c_rom["Close"])
+        open_rom   = safe_float(c_rom["Open"])
+        close_conf = safe_float(c_conf["Close"])
+        mm6_rom    = safe_float(c_rom["MM6"])
+        mm6_conf   = safe_float(c_conf["MM6"])
+        hilo_ant   = safe_float(c_ant["HiLo"])
+        if mm6_rom == 0 or hilo_ant == 0:
+            continue
+        data_conf = c_conf["index"]
+        if hasattr(data_conf, "date"):
+            data_conf = data_conf.date()
+        cruzou_cima = open_rom < mm6_rom and close_rom > mm6_rom
+        if cruzou_cima and close_rom > hilo_ant and close_conf > mm6_conf:
+            ultimo_padrao = {"tipo": "COMPRA", "data": data_conf}
+        cruzou_baixo = open_rom > mm6_rom and close_rom < mm6_rom
+        if cruzou_baixo and close_rom < hilo_ant and close_conf < mm6_conf:
+            ultimo_padrao = {"tipo": "VENDA", "data": data_conf}
+    return ultimo_padrao
 
 def calcular_score_completo(df_v):
     """Calcula todas as camadas e retorna dicionario com resultados."""
@@ -378,10 +384,13 @@ with aba1:
                         else:
                             st.error("VENDA/EVITAR: Estrutura baixista ou multiplos fracos.")
 
-                        if res['reversao'] == "COMPRA":
-                            st.success("Padrao de reversao confirmado - COMPRA")
-                        elif res['reversao'] == "VENDA":
-                            st.error("Padrao de reversao confirmado - VENDA")
+                        rev = res["reversao"]
+                        if rev:
+                            data_rev = rev["data"]
+                            if rev["tipo"] == "COMPRA":
+                                st.success(f"Ultimo padrao de reversao: COMPRA em {data_rev}")
+                            else:
+                                st.error(f"Ultimo padrao de reversao: VENDA em {data_rev}")
 
                         for tipo, txt in res['alertas_c3']:
                             if tipo in ("urgente", "alerta"):
@@ -432,8 +441,9 @@ with aba1:
                         st.markdown("**Camada 3 - Contexto**")
                         for tipo, txt in res['alertas_c3']:
                             st.write(f"- {txt}")
-                        if res['reversao']:
-                            st.write(f"- Padrao de reversao: {res['reversao']}")
+                        if res["reversao"]:
+                            rv = res["reversao"]
+                            st.write(f"- Ultimo padrao reversao: {rv["tipo"]} em {rv["data"]}")
                     with col_fund:
                         st.markdown(f"**Fundamentalista** ({fonte_fund})")
                         for tp, txt, pts in motivos_fund:
@@ -507,7 +517,7 @@ with aba2:
                         "Fundamentos": score_fund,
                         "Sinal": sinal,
                         "Modo HiLo": "Compra" if res['modo_compra'] else "Venda",
-                        "Reversao": res['reversao'] if res['reversao'] else "--",
+                        "Reversao": (res["reversao"]["tipo"] + " " + str(res["reversao"]["data"])) if res["reversao"] else "--",
                         "HiLo Dist%": round(res['dist_hilo_pct'], 1),
                         "Consolidacao": "Sim" if res['faixa5'] <= 0.05 else "Nao",
                     })
@@ -534,9 +544,9 @@ with aba2:
                         st.markdown(f"### #{idx} {row['Ticker']}")
                         st.markdown(f"<span style='color:{cor}; font-size:20px; font-weight:bold'>{row['Sinal']}</span>", unsafe_allow_html=True)
                         st.metric("Score", f"{row['Score']}/100")
-                        if row['Reversao'] != "--":
-                            rev_cor = "green" if row['Reversao'] == "COMPRA" else "red"
-                            st.markdown(f"<span style='color:{rev_cor}'>Reversao: {row['Reversao']}</span>", unsafe_allow_html=True)
+                        if row["Reversao"] != "--":
+                            rev_cor = "green" if row["Reversao"].startswith("COMPRA") else "red"
+                            st.markdown(f"<span style='color:{rev_cor}'>Reversao: {row["Reversao"]}</span>", unsafe_allow_html=True)
                         if row['HiLo Dist%'] < 2.0:
                             st.warning(f"HiLo a {row['HiLo Dist%']}% - virada iminente!")
 
@@ -605,10 +615,10 @@ with aba2:
                     st.write("---")
                     st.subheader("Padroes de Reversao Detectados")
                     for _, row in reversoes.iterrows():
-                        cor = "#22c55e" if row['Reversao'] == "COMPRA" else "#ef4444"
+                        cor = "#22c55e" if row["Reversao"].startswith("COMPRA") else "#ef4444"
                         st.markdown(
                             f"<span style='color:{cor}; font-weight:bold'>"
-                            f"{row['Ticker']} — Padrao de reversao de {row['Reversao']} confirmado"
+                            f"{row["Ticker"]} — {row["Reversao"]}"
                             f"</span>",
                             unsafe_allow_html=True
                         )
