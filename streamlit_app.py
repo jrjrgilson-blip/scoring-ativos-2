@@ -563,10 +563,17 @@ with aba2:
                 df_display['Cotacao'] = df_display['Cotacao'].apply(lambda x: f"R$ {x:.2f}")
                 df_display['Var%']    = df_display['Var%'].apply(lambda x: f"{x:+.2f}%")
 
+                def colorir_score(val):
+                    if val >= 75:
+                        return "color: #22c55e; font-weight: bold"
+                    elif val >= 45:
+                        return "color: #eab308; font-weight: bold"
+                    return "color: #ef4444; font-weight: bold"
+
                 styled = df_display.style \
                     .map(colorir_sinal, subset=['Sinal']) \
                     .map(colorir_reversao, subset=['Reversao']) \
-                    .background_gradient(subset=['Score'], cmap='RdYlGn', vmin=0, vmax=100)
+                    .map(colorir_score, subset=['Score'])
 
                 st.dataframe(styled, use_container_width=True)
 
