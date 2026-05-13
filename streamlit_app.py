@@ -101,11 +101,29 @@ def detectar_reversao(df_v, janela=60):
         data_conf = datas[i + 1]
         if hasattr(data_conf, "date"):
             data_conf = data_conf.date()
+        # Candle anterior ao rompimento (contexto de onde veio)
+        close_ant  = safe_float(c_ant["Close"])
+        mm6_ant    = safe_float(c_ant["MM6"])
+        hilo_modo_rom = c_rom["HiLo_modo"]
+
+        # COMPRA: vinha de baixo (anterior abaixo da MM6),
+        # HiLo em modo venda (virada real), cruza MM6 para cima,
+        # fecha acima do HiLo anterior, confirmacao acima da MM6
         cruzou_cima = open_rom < mm6_rom and close_rom > mm6_rom
-        if cruzou_cima and close_rom > hilo_ant and close_conf > mm6_conf:
+        vinha_de_baixo = close_ant < mm6_ant
+        if (cruzou_cima and vinha_de_baixo and
+                hilo_modo_rom == "venda" and
+                close_rom > hilo_ant and close_conf > mm6_conf):
             ultimo_padrao = {"tipo": "COMPRA", "data": data_conf}
+
+        # VENDA: vinha de cima (anterior acima da MM6),
+        # HiLo em modo compra (virada real), cruza MM6 para baixo,
+        # fecha abaixo do HiLo anterior, confirmacao abaixo da MM6
         cruzou_baixo = open_rom > mm6_rom and close_rom < mm6_rom
-        if cruzou_baixo and close_rom < hilo_ant and close_conf < mm6_conf:
+        vinha_de_cima = close_ant > mm6_ant
+        if (cruzou_baixo and vinha_de_cima and
+                hilo_modo_rom == "compra" and
+                close_rom < hilo_ant and close_conf < mm6_conf):
             ultimo_padrao = {"tipo": "VENDA", "data": data_conf}
     return ultimo_padrao
 
