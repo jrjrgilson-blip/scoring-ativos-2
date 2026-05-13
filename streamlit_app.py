@@ -564,8 +564,8 @@ with aba2:
                 df_display['Var%']    = df_display['Var%'].apply(lambda x: f"{x:+.2f}%")
 
                 styled = df_display.style \
-                    .applymap(colorir_sinal, subset=['Sinal']) \
-                    .applymap(colorir_reversao, subset=['Reversao']) \
+                    .map(colorir_sinal, subset=['Sinal']) \
+                    .map(colorir_reversao, subset=['Reversao']) \
                     .background_gradient(subset=['Score'], cmap='RdYlGn', vmin=0, vmax=100)
 
                 st.dataframe(styled, use_container_width=True)
