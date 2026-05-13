@@ -98,33 +98,35 @@ def detectar_reversao(df_v, janela=60):
         hilo_ant   = safe_float(c_ant["HiLo"])
         if mm6_rom == 0 or hilo_ant == 0:
             continue
-        data_conf = datas[i + 1]
-        if hasattr(data_conf, "date"):
-            data_conf = data_conf.date()
+        data_rom = datas[i]
+        if hasattr(data_rom, "date"):
+            data_rom = data_rom.date()
         # Candle anterior ao rompimento (contexto de onde veio)
-        close_ant  = safe_float(c_ant["Close"])
-        mm6_ant    = safe_float(c_ant["MM6"])
-        hilo_modo_rom = c_rom["HiLo_modo"]
+        close_ant     = safe_float(c_ant["Close"])
+        mm6_ant       = safe_float(c_ant["MM6"])
+        hilo_modo_ant = c_ant["HiLo_modo"]  # modo ANTES do rompimento
 
         # COMPRA: vinha de baixo (anterior abaixo da MM6),
-        # HiLo em modo venda (virada real), cruza MM6 para cima,
-        # fecha acima do HiLo anterior, confirmacao acima da MM6
-        cruzou_cima = open_rom < mm6_rom and close_rom > mm6_rom
+        # HiLo ainda em modo venda no candle anterior (virada real),
+        # cruza MM6 para cima, fecha acima do HiLo anterior,
+        # confirmacao fecha acima da MM6
+        cruzou_cima    = open_rom < mm6_rom and close_rom > mm6_rom
         vinha_de_baixo = close_ant < mm6_ant
         if (cruzou_cima and vinha_de_baixo and
-                hilo_modo_rom == "venda" and
+                hilo_modo_ant == "venda" and
                 close_rom > hilo_ant and close_conf > mm6_conf):
-            ultimo_padrao = {"tipo": "COMPRA", "data": data_conf}
+            ultimo_padrao = {"tipo": "COMPRA", "data": data_rom}
 
         # VENDA: vinha de cima (anterior acima da MM6),
-        # HiLo em modo compra (virada real), cruza MM6 para baixo,
-        # fecha abaixo do HiLo anterior, confirmacao abaixo da MM6
-        cruzou_baixo = open_rom > mm6_rom and close_rom < mm6_rom
+        # HiLo ainda em modo compra no candle anterior (virada real),
+        # cruza MM6 para baixo, fecha abaixo do HiLo anterior,
+        # confirmacao fecha abaixo da MM6
+        cruzou_baixo  = open_rom > mm6_rom and close_rom < mm6_rom
         vinha_de_cima = close_ant > mm6_ant
         if (cruzou_baixo and vinha_de_cima and
-                hilo_modo_rom == "compra" and
+                hilo_modo_ant == "compra" and
                 close_rom < hilo_ant and close_conf < mm6_conf):
-            ultimo_padrao = {"tipo": "VENDA", "data": data_conf}
+            ultimo_padrao = {"tipo": "VENDA", "data": data_rom}
     return ultimo_padrao
 
 def calcular_score_completo(df_v):
@@ -538,7 +540,7 @@ with aba2:
                         "Sinal": sinal,
                         "Modo HiLo": "Compra" if res['modo_compra'] else "Venda",
                         "Reversao": (res["reversao"]["tipo"] + " " + str(res["reversao"]["data"])) if res["reversao"] else "--",
-                        "HiLo Dist%": round(res['dist_hilo_pct'], 1),
+                        "HiLo Dist%": f"{res['dist_hilo_pct']:.1f}%",
                         "Consolidacao": "Sim" if res['faixa5'] <= 0.05 else "Nao",
                     })
                 except Exception:
