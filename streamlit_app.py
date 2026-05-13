@@ -112,9 +112,11 @@ def detectar_reversao(df_v, janela=60):
         # confirmacao fecha acima da MM6
         cruzou_cima    = open_rom < mm6_rom and close_rom > mm6_rom
         vinha_de_baixo = close_ant < mm6_ant
+        # Aceita fechamento acima ou encostando no HiLo (tolerancia de 0.5%)
+        tocou_hilo_compra = close_rom >= hilo_ant * 0.995
         if (cruzou_cima and vinha_de_baixo and
                 hilo_modo_ant == "venda" and
-                close_rom > hilo_ant and close_conf > mm6_conf):
+                tocou_hilo_compra and close_conf > mm6_conf):
             ultimo_padrao = {"tipo": "COMPRA", "data": data_rom}
 
         # VENDA: vinha de cima (anterior acima da MM6),
@@ -123,9 +125,11 @@ def detectar_reversao(df_v, janela=60):
         # confirmacao fecha abaixo da MM6
         cruzou_baixo  = open_rom > mm6_rom and close_rom < mm6_rom
         vinha_de_cima = close_ant > mm6_ant
+        # Aceita fechamento abaixo ou encostando no HiLo (tolerancia de 0.5%)
+        tocou_hilo_venda = close_rom <= hilo_ant * 1.005
         if (cruzou_baixo and vinha_de_cima and
                 hilo_modo_ant == "compra" and
-                close_rom < hilo_ant and close_conf < mm6_conf):
+                tocou_hilo_venda and close_conf < mm6_conf):
             ultimo_padrao = {"tipo": "VENDA", "data": data_rom}
     return ultimo_padrao
 
